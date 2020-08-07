@@ -1,7 +1,7 @@
 # Space Invaders (sort of) in Elm
 I continue to learn Elm. This time I decided to make a very basic game inspired by space invaders. 
 
-**You can check it out here [here](https://relaxed-aryabhata-68700c.netlify.app/)**
+**You can check it out [here](https://sad-rosalind-52d728.netlify.app)**
 
 ## Controls 
 - Move Left -> 'a'
