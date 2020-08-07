@@ -50,6 +50,7 @@ type alias Model =
     , bulletsPos : Set Position
     , gameTick : Int
     , gameOver : Bool
+    , score : Int
     }
 
 createPlayArea : PlayArea
@@ -61,7 +62,7 @@ createPlayArea =
 
 init : () -> (Model, Cmd Msg)
 init _ =
-    ( Model createPlayArea startPlayerPos spawnEnemies empty 0 False
+    ( Model createPlayArea startPlayerPos spawnEnemies empty 0 False 0
     , Cmd.none
     )
 
@@ -118,18 +119,14 @@ updateOnPlayerAction action model =
 
 updateOnGameTick : Model -> Model
 updateOnGameTick model =
-    let
-        tick = model.gameTick + 1
-        xChange = if remainderBy 2 tick == 0 then 1 else -1 
-
-        yChange = if remainderBy 5 tick == 0 then 1 else 0 
-    in
-        { model | enemiesPos = moveEnemies xChange yChange model.enemiesPos
-        , gameTick = tick
-        }
+        { model | gameTick = model.gameTick + 1 }
+            |> updateEnemyPositions
             |> updateBulletPositions
             |> updatePlayArea
+            |> removeBulletsOutsidePlayArea
+            |> updateScore
             |> checkGameOver
+            
 
 
 checkGameOver : Model -> Model
@@ -138,6 +135,12 @@ checkGameOver model =
         { model | gameOver = True }
     else 
         model
+
+
+
+removeBulletsOutsidePlayArea : Model -> Model
+removeBulletsOutsidePlayArea model =
+    { model | bulletsPos = Set.filter (\pos -> first pos >= 0) model.bulletsPos }
 
 
 advanceBullet : Position -> Position
@@ -155,6 +158,34 @@ moveEnemies xChange yChange set =
     set
         |> Set.map (Tuple.mapSecond (\x -> x + xChange))
         |> Set.map (Tuple.mapFirst (\y -> y + yChange))
+
+
+updateEnemyPositions : Model -> Model
+updateEnemyPositions model =
+    let
+        tick = model.gameTick
+        xChange = if remainderBy 6 tick == 0 && remainderBy 12 tick == 0 then 
+                1 
+            else if remainderBy 6 tick == 0 then 
+                -1
+            else    
+                0 
+
+        yChange = if remainderBy 9 tick == 0 then 1 else 0 
+    in
+        { model | enemiesPos = moveEnemies xChange yChange model.enemiesPos }
+
+
+updateScore : Model -> Model
+updateScore model =
+    let
+        collissions = Set.intersect model.bulletsPos model.enemiesPos
+    in
+        { model | 
+          enemiesPos = Set.diff model.enemiesPos collissions
+        , bulletsPos = Set.diff model.bulletsPos collissions
+        , score = model.score + Set.size collissions
+        }
 
 
 updatePlayerPos : PlayerMove -> Position -> Position
@@ -209,7 +240,7 @@ subscriptions model =
     if not model.gameOver then
         Sub.batch 
             [ onKeyPress keyDecoder
-            , Time.every 500 GameTick
+            , Time.every 200 GameTick
             ]
     else 
         Sub.none
@@ -249,9 +280,12 @@ displayGameOver model =
     if model.gameOver then
         div [ Html.Attributes.style "text-align" "center"
             , Html.Attributes.style "font-size" "large" ] 
-            [ text "Game Over!" ]
+            [ text ("Game Over! " ++ "Final Score: " ++ String.fromInt model.score) ]
     else 
-        div [][]
+        div [ Html.Attributes.style "text-align" "center"
+            , Html.Attributes.style "font-size" "large" 
+            ] 
+            [ text ("Score: " ++ String.fromInt model.score) ]
 
 playAreaToHTML : PlayArea -> Html Msg
 playAreaToHTML playarea =
