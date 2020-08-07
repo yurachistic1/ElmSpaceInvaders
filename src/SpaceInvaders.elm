@@ -125,6 +125,7 @@ updateOnGameTick model =
             |> updatePlayArea
             |> removeBulletsOutsidePlayArea
             |> updateScore
+            |> enemiesNewWave
             |> checkGameOver
             
 
@@ -224,12 +225,20 @@ updatePlayArea model =
 spawnEnemies : Set Position
 spawnEnemies =
     let
-        xs = List.filter (\x -> remainderBy 2 x == 1) (List.range 0 (second dimensions - 1))
+        xs = List.filter (\x -> remainderBy 3 x == 1) (List.range 1 (second dimensions - 2))
         ys = List.repeat (List.length xs) 0
     in
         List.map2 Tuple.pair ys xs
             |> Set.fromList
-    
+
+
+
+enemiesNewWave : Model -> Model
+enemiesNewWave model =
+    if remainderBy 15 model.gameTick == 0 then 
+        { model | enemiesPos = Set.union model.enemiesPos spawnEnemies } 
+    else 
+        model
 
 
 
